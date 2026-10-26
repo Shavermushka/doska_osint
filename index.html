@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DESKA_INT — OSINT-доска</title>
+<style>
+  :root{
+    --accent:#4d6bfe;
+    --accent-soft:#eef1ff;
+    --danger:#ef4444;
+    --ink:#0d0d0d;
+    --muted:#6b7280;
+    --border:#e5e5e5;
+    --soft:#f7f8fa;
+    --panel:#ffffff;
+    --hover:#f2f4f8;
+    --canvas-bg:#fbfbfd;
+    --canvas-grid:#dcdfe6;
+    --node-bg:#ffffff;
+    --node-border:#e0e3ea;
+    --node-text:#0d0d0d;
+    --link:#c3c9d4;
+    --link-label-bg:#ffffff;
+    --link-label-border:#e5e5e5;
+    --link-label-text:#6b7280;
+    --overlay:rgba(15,20,30,.35);
+    --shadow:0 18px 50px rgba(15,20,30,.25);
+  }
+  [data-theme="dark"]{
+    --ink:#e8eaef;
+    --muted:#9ca3af;
+    --border:#2a2f3a;
+    --soft:#0b0d12;
+    --panel:#141821;
+    --hover:#1f242e;
+    --accent-soft:#1a2140;
+    --canvas-bg:#0f1115;
+    --canvas-grid:#252a35;
+    --node-bg:#1a1d24;
+    --node-border:#333844;
+    --node-text:#e8eaef;
+    --link:#4a5162;
+    --link-label-bg:#1a1d24;
+    --link-label-border:#333844;
+    --link-label-text:#9ca3af;
+    --overlay:rgba(0,0,0,.55);
+    --shadow:0 18px 50px rgba(0,0,0,.55);
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:14px;color:var(--ink);background:var(--soft);
+    display:flex;flex-direction:column;overflow:hidden;
+    transition:background .2s,color .2s;
+  }
+
+  header{
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+    padding:9px 14px;background:var(--panel);border-bottom:1px solid var(--border);
+  }
+  header h1{
+    font-size:15px;font-weight:700;margin:0 10px 0 0;letter-spacing:.06em;
+    color:var(--accent);
+  }
+  .spacer{flex:1}
+
+  .titleInput{
+    border:1px solid transparent;background:transparent;font:inherit;font-size:14px;
+    font-weight:500;padding:6px 8px;border-radius:8px;width:230px;color:var(--ink);
+  }
+  .titleInput:hover{border-color:var(--border)}
+  .titleInput:focus{outline:none;border-color:var(--accent);background:var(--panel)}
+
+  .searchWrap{position:relative;display:flex;align-items:center}
+  .searchInput{
+    border:1px solid var(--border);background:var(--panel);color:var(--ink);
+    font:inherit;font-size:13px;padding:6px 52px 6px 10px;border-radius:8px;width:190px;
+  }
+  .searchInput:focus{outline:none;border-color:var(--accent)}
+  .searchCount{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    font-size:11px;color:var(--muted);pointer-events:none;
+  }
+
+  button{
+    font:inherit;font-size:12.5px;padding:7px 12px;border-radius:8px;
+    border:1px solid var(--border);background:var(--panel);color:var(--ink);cursor:pointer;
+    transition:border-color .15s,color .15s,background .15s;
+  }
+  button:hover{border-color:var(--accent);color:var(--accent)}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.primary:hover{color:#fff;filter:brightness(.94)}
+
+  .icon-btn{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:34px;height:32px;padding:0;
+  }
+  .icon-btn svg{display:block;width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .theme-moon{display:none}
+  [data-theme="dark"] .theme-moon{display:block}
+  [data-theme="dark"] .theme-sun{display:none}
+
+  main{flex:1;display:flex;min-height:0}
+
+  aside{
+    width:300px;flex:none;background:var(--panel);border-right:1px solid var(--border);
+    overflow-y:auto;padding:16px 14px 40px;
+  }
+  .sec{margin-bottom:22px}
+  .sec h2{
+    font-size:11px;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--muted);font-weight:600;margin:0 0 9px;
+  }
+  .subcap{
+    font-size:11px;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--muted);font-weight:600;margin:12px 0 6px;
+  }
+  .muted{color:var(--muted);font-size:12.5px;line-height:1.5;margin:0}
+
+  .palette{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .pal-btn{display:flex;align-items:center;gap:7px;padding:7px 8px;font-size:12px;justify-content:flex-start;min-width:0}
+  .pal-btn span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dot{width:10px;height:10px;border-radius:50%;flex:none}
+
+  .custom-row{display:flex;gap:4px;align-items:stretch;margin-bottom:6px}
+  .custom-row .pal-btn{flex:1;min-width:0}
+  .del-type{padding:0 8px;font-size:14px;line-height:1;color:var(--muted);border-color:var(--border);flex:none}
+  .del-type:hover{color:var(--danger);border-color:var(--danger)}
+  .edit-type{padding:0 8px;font-size:13px;line-height:1;color:var(--muted);border-color:var(--border);flex:none}
+  .edit-type:hover{color:var(--accent);border-color:var(--accent)}
+  .add-type{
+    width:100%;justify-content:center;border-style:dashed;
+    color:var(--accent);border-color:var(--border);
+  }
+  .add-type:hover{border-color:var(--accent);background:var(--accent-soft)}
+
+  label.f{display:block;font-size:11.5px;color:var(--muted);margin:10px 0 4px}
+  input,select,textarea{
+    width:100%;font:inherit;font-size:13px;padding:7px 9px;
+    border:1px solid var(--border);border-radius:8px;
+    background:var(--panel);color:var(--ink);
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  input[type="color"]{padding:2px;height:36px;cursor:pointer}
+  textarea{resize:vertical;line-height:1.45}
+
+  .switch{
+    display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);
+    padding:7px 9px;border:1px solid var(--border);border-radius:8px;
+    cursor:pointer;user-select:none;
+  }
+  .switch + .switch{margin-top:6px}
+  .switch:hover{border-color:var(--accent)}
+  .switch input{width:auto;margin:0;accent-color:var(--accent);cursor:pointer}
+  .switch .switch-hint{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+
+  .tool-grid{
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px;
+  }
+  .tool-grid button{font-size:11.5px;padding:7px 3px}
+
+  .linkRow{
+    display:flex;align-items:center;gap:8px;justify-content:space-between;
+    font-size:12.5px;color:var(--ink);padding:4px 6px 4px 9px;
+    border:1px solid var(--border);border-radius:8px;margin-bottom:5px;
+  }
+  .linkRow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mini{padding:0 7px;font-size:14px;line-height:20px;border-radius:6px;color:var(--muted);border-color:transparent}
+  .mini:hover{color:var(--danger);border-color:transparent}
+
+  #canvasWrap{flex:1;position:relative;min-width:0}
+  svg#board{
+    display:block;width:100%;height:100%;touch-action:none;
+    background-color:var(--canvas-bg);
+    background-image:radial-gradient(var(--canvas-grid) 1px, transparent 1px);
+    background-size:20px 20px;
+    background-position:0 0;
+    transition:background-color .2s;
+  }
+  #hint{
+    position:absolute;left:14px;bottom:14px;font-size:11.5px;color:var(--muted);
+    background:var(--panel);border:1px solid var(--border);
+    border-radius:8px;padding:6px 10px;pointer-events:none;max-width:70%;
+    opacity:.94;
+  }
+
+  svg#board .node-bg{fill:var(--node-bg);stroke:var(--node-border);stroke-width:1.5}
+  svg#board .node-text{fill:var(--node-text)}
+  svg#board .link-line{stroke:var(--link);stroke-width:2;fill:none;stroke-linejoin:round}
+  svg#board .link-label-bg{fill:var(--link-label-bg);stroke:var(--link-label-border);stroke-width:1}
+  svg#board .link-label-text{fill:var(--link-label-text)}
+  svg#board .num-bg{fill:var(--accent-soft);stroke:var(--border);stroke-width:1}
+  svg#board .num-text{fill:var(--accent);font-weight:600}
+  #arrow path{fill:var(--link)}
+
+  .modal-back{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:50}
+  .modal-back.hidden{display:none}
+  .modal-box{
+    background:var(--panel);border-radius:14px;padding:18px;width:340px;
+    box-shadow:var(--shadow);border:1px solid var(--border);
+  }
+  .modal-box h3{margin:0 0 6px;font-size:14px;font-weight:600}
+  .modal-box .desc{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.45}
+  .modal-box .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DESKA_INT</h1>
+  <input id="caseTitle" class="titleInput" placeholder="Название дела" />
+  <div class="searchWrap">
+    <input id="searchInput" class="searchInput" placeholder="Поиск узлов" />
+    <span id="searchCount" class="searchCount"></span>
+  </div>
+  <div class="spacer"></div>
+  <button id="btnTheme" class="icon-btn" title="Переключить тему" aria-label="Переключить тему">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <g class="theme-sun">
+        <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>
+        <circle cx="12" cy="12" r="4"/>
+      </g>
+      <path class="theme-moon" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+    </svg>
+  </button>
+  <button id="btnDemo">Демо-пример</button>
+  <button id="btnCenter">Центрировать</button>
+  <button id="btnPng">PNG</button>
+  <button id="btnJpg">JPG</button>
+  <button id="btnSave">Сохранить JSON</button>
+  <button id="btnOpen">Открыть</button>
+  <button id="btnReport" class="primary">Отчёт .md</button>
+  <button id="btnClear">Очистить</button>
+  <input type="file" id="fileInput" accept=".json,application/json" hidden />
+</header>
+
+<main>
+  <aside>
+    <section class="sec">
+      <h2>Палитра сущностей</h2>
+      <div class="palette" id="palette"></div>
+    </section>
+
+    <section class="sec">
+      <h2>Мои типы</h2>
+      <div id="customPalette"></div>
+      <button class="add-type" id="btnAddType">+ Добавить свой тип</button>
+    </section>
+
+    <section class="sec">
+      <h2>Структура</h2>
+      <label class="switch" for="optSnap">
+        <input type="checkbox" id="optSnap" />
+        <span>
+          Привязка к сетке
+          <span class="switch-hint">Узлы встают на сетку 20 px — ровные ряды без правок</span>
+        </span>
+      </label>
+      <label class="switch" for="optOrtho">
+        <input type="checkbox" id="optOrtho" />
+        <span>
+          Связи под 90°
+          <span class="switch-hint">Линии идут как в блок-схемах: по горизонтали и вертикали</span>
+        </span>
+      </label>
+      <label class="switch" for="optRepel">
+        <input type="checkbox" id="optRepel" />
+        <span>
+          Отталкивание узлов
+          <span class="switch-hint">Соседние узлы отходят с запасом — наложений нет</span>
+        </span>
+      </label>
+
+      <div class="subcap">Автораскладка</div>
+      <div class="tool-grid">
+        <button id="btnLayoutCircle" title="Все узлы по кругу">Кругом</button>
+        <button id="btnLayoutTree" title="Иерархия сверху вниз">Деревом</button>
+        <button id="btnLayoutGrid" title="Ровные ряды">Сеткой</button>
+      </div>
+    </section>
+
+    <section class="sec">
+      <h2>Дело</h2>
+      <label class="f" for="metaAuthor">Исполнитель</label>
+      <input id="metaAuthor" placeholder="ФИО / ник" />
+      <label class="f" for="metaNotes">Цель и описание</label>
+      <textarea id="metaNotes" rows="4" placeholder="Что и зачем исследуем"></textarea>
+    </section>
+
+    <section class="sec">
+      <h2>Свойства узла</h2>
+      <div id="props"></div>
+    </section>
+  </aside>
+
+  <section id="canvasWrap">
+    <svg id="board">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" />
+        </marker>
+      </defs>
+      <g id="viewport">
+        <g id="gLinks"></g>
+        <line id="tempLine" stroke="#4d6bfe" stroke-width="2" stroke-dasharray="6 4" style="display:none" />
+        <g id="gNodes"></g>
+      </g>
+    </svg>
+    <div id="hint">
+      Перетаскивайте узлы · тяните за синюю точку справа — создать связь ·
+      колесо — масштаб · ПКМ — удалить · Del — удалить выбранное ·
+      Enter в поиске — к следующему совпадению
+    </div>
+  </section>
+</main>
+
+<div id="modal" class="modal-back hidden">
+  <div class="modal-box">
+    <h3>Тип связи</h3>
+    <select id="relSelect"></select>
+    <input id="relCustom" placeholder="или свой текст" style="margin-top:8px" />
+    <div class="actions">
+      <button id="relOk" class="primary">Сохранить</button>
+      <button id="relCancel">Отмена</button>
+    </div>
+  </div>
+</div>
+
+<div id="typeModal" class="modal-back hidden">
+  <div class="modal-box">
+    <h3 id="typeModalTitle">Новый тип сущности</h3>
+    <p class="desc" id="typeModalDesc">Тип появится в разделе «Мои типы» и будет доступен так же, как встроенные.</p>
+    <label class="f" for="ntName">Название</label>
+    <input id="ntName" maxlength="30" placeholder="Например: Автомобиль" />
+    <label class="f" for="ntShort">Обозначение (1–3 символа)</label>
+    <input id="ntShort" maxlength="3" placeholder="А" />
+    <label class="f" for="ntColor">Цвет</label>
+    <input id="ntColor" type="color" value="#4d6bfe" />
+    <div class="actions">
+      <button id="ntCancel">Отмена</button>
+      <button id="ntOk" class="primary">Создать</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg         = document.getElementById('board');
+  var viewport    = document.getElementById('viewport');
+  var gLinks      = document.getElementById('gLinks');
+  var gNodes      = document.getElementById('gNodes');
+  var tempLine    = document.getElementById('tempLine');
+  var paletteEl   = document.getElementById('palette');
+  var customPal   = document.getElementById('customPalette');
+  var propsEl     = document.getElementById('props');
+  var caseTitle   = document.getElementById('caseTitle');
+  var metaAuthor  = document.getElementById('metaAuthor');
+  var metaNotes   = document.getElementById('metaNotes');
+  var modal       = document.getElementById('modal');
+  var relSelect   = document.getElementById('relSelect');
+  var relCustom   = document.getElementById('relCustom');
+  var fileInput   = document.getElementById('fileInput');
+  var typeModal   = document.getElementById('typeModal');
+  var searchInput = document.getElementById('searchInput');
+  var searchCount = document.getElementById('searchCount');
+  var optSnap     = document.getElementById('optSnap');
+  var optOrtho    = document.getElementById('optOrtho');
+  var optRepel    = document.getElementById('optRepel');
+
+  var NODE_H    = 44;
+  var GRID      = 20;
+  var GAP_X     = 44;
+  var GAP_Y     = 38;
+
+  var STORE_KEY = 'osint_board_v1';
+  var THEME_KEY = 'osint_board_theme';
+
+  var TYPES = {
+    person:   { name: 'Персона',     short: 'П',  color: '#4d6bfe' },
+    org:      { name: 'Организация', short: 'О',  color: '#ef4444' },
+    email:    { name: 'E-mail',      short: '@',  color: '#0ea5e9' },
+    phone:    { name: 'Телефон',     short: 'Т',  color: '#8b5cf6' },
+    username: { name: 'Никнейм',     short: '#',  color: '#ec4899' },
+    domain:   { name: 'Домен',       short: 'D',  color: '#10b981' },
+    ip:       { name: 'IP-адрес',    short: 'IP', color: '#f59e0b' },
+    location: { name: 'Локация',     short: 'Л',  color: '#14b8a6' },
+    wallet:   { name: 'Кошелёк',     short: 'B',  color: '#d97706' },
+    file:     { name: 'Документ',    short: 'Ф',  color: '#64748b' }
+  };
+
+  var TRUST = {
+    confirmed:   { name: 'Подтверждено',    color: '#22c55e' },
+    unconfirmed: { name: 'Не подтверждено', color: '#f59e0b' },
+    rumor:       { name: 'Слух',            color: '#ef4444' }
+  };
+
+  var RELATIONS = [
+    'связан с', 'владеет', 'работает в', 'учится в', 'зарегистрирован на',
+    'использует', 'проживает в', 'родственник', 'переписывался с',
+    'совпадает с', 'оплатил', 'администрирует'
+  ];
+
+  var state = {
+    meta: { title: '', author: '', notes: '' },
+    nodes: [],
+    links: [],
+    customTypes: [],
+    settings: { snapToGrid: false, orthogonal: false, repulsion: true }
+  };
+
+  var view  = { tx: 0, ty: 0, k: 1 };
+  var selectedId = null;
+  var drag = null, pan = null, linking = null;
+  var seq = 1;
+
+  var searchMatches = [];
+  var searchPos = 0;
+  var editingTypeId = null;
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) { }
+  }
+  function initTheme() {
+    var t = 'light';
+    try { t = localStorage.getItem(THEME_KEY) || 'light'; } catch (e) { }
+    applyTheme(t);
+  }
+  document.getElementById('btnTheme').addEventListener('click', function () {
+    var cur = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    applyTheme(cur === 'dark' ? 'light' : 'dark');
+  });
+
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    if (attrs) {
+      for (var k in attrs) {
+        if (Object.prototype.hasOwnProperty.call(attrs, k)) {
+          e.setAttribute(k, attrs[k]);
+        }
+      }
+    }
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+
+  function newId() { return 'n' + (seq++) + Math.random().toString(36).slice(2, 6); }
+  function newLinkId() { return 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+  function newTypeId() { return 'c_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+
+  function getNode(id) {
+    for (var i = 0; i < state.nodes.length; i++) { if (state.nodes[i].id === id) return state.nodes[i]; }
+    return null;
+  }
+  function nodeIndex(id) {
+    for (var i = 0; i < state.nodes.length; i++) { if (state.nodes[i].id === id) return i; }
+    return -1;
+  }
+  function getType(id) {
+    if (TYPES[id]) return TYPES[id];
+    for (var i = 0; i < state.customTypes.length; i++) {
+      if (state.customTypes[i].id === id) return state.customTypes[i];
+    }
+    return TYPES.person;
+  }
+  function getAllTypes() {
+    var list = [];
+    Object.keys(TYPES).forEach(function (k) {
+      list.push({ id: k, name: TYPES[k].name, short: TYPES[k].short, color: TYPES[k].color });
+    });
+    state.customTypes.forEach(function (t) { list.push(t); });
+    return list;
+  }
+  function shortText(s, max) {
+    s = (s === null || s === undefined) ? '' : String(s);
+    return s.length > max ? s.slice(0, max - 1) + '\u2026' : s;
+  }
+  function nodeWidth(n) {
+    return Math.max(120, Math.min(240, shortText(n.label, 26).length * 7.4 + 52));
+  }
+  function screenToWorld(ev) {
+    var r = svg.getBoundingClientRect();
+    return {
+      x: (ev.clientX - r.left - view.tx) / view.k,
+      y: (ev.clientY - r.top  - view.ty) / view.k
+    };
+  }
+  function boxEdge(from, to, w, h) {
+    var dx = to.x - from.x, dy = to.y - from.y;
+    if (dx === 0 && dy === 0) return { x: from.x, y: from.y };
+    var pad = 6;
+    var sx = (w / 2 + pad) / Math.abs(dx || 1e-6);
+    var sy = (h / 2 + pad) / Math.abs(dy || 1e-6);
+    var s = Math.min(sx, sy);
+    return { x: from.x + dx * s, y: from.y + dy * s };
+  }
+  function nodeAt(x, y) {
+    for (var i = state.nodes.length - 1; i >= 0; i--) {
+      var n = state.nodes[i], w = nodeWidth(n);
+      if (Math.abs(x - n.x) <= w / 2 + 8 && Math.abs(y - n.y) <= NODE_H / 2 + 8) return n;
+    }
+    return null;
+  }
+  function snap(v) {
+    return state.settings.snapToGrid ? Math.round(v / GRID) * GRID : v;
+  }
+
+  function buildLinkPath(p1, p2) {
+    if (!state.settings.orthogonal) {
+      return 'M ' + p1.x + ' ' + p1.y + ' L ' + p2.x + ' ' + p2.y;
+    }
+    var dx = Math.abs(p2.x - p1.x);
+    var dy = Math.abs(p2.y - p1.y);
+    if (dx >= dy) {
+      var midX = (p1.x + p2.x) / 2;
+      return 'M ' + p1.x + ' ' + p1.y +
+             ' L ' + midX + ' ' + p1.y +
+             ' L ' + midX + ' ' + p2.y +
+             ' L ' + p2.x + ' ' + p2.y;
+    }
+    var midY = (p1.y + p2.y) / 2;
+    return 'M ' + p1.x + ' ' + p1.y +
+           ' L ' + p1.x + ' ' + midY +
+           ' L ' + p2.x + ' ' + midY +
+           ' L ' + p2.x + ' ' + p2.y;
+  }
+
+  function repelFrom(dragged) {
+    if (!state.settings.repulsion) return;
+    var dw = nodeWidth(dragged);
+    for (var i = 0; i < state.nodes.length; i++) {
+      var n = state.nodes[i];
+      if (n.id === dragged.id) continue;
+      var nw = nodeWidth(n);
+      var dx = n.x - dragged.x;
+      var dy = n.y - dragged.y;
+      var ox = (dw + nw) / 2 + GAP_X - Math.abs(dx);
+      var oy = NODE_H + GAP_Y - Math.abs(dy);
+      if (ox > 0 && oy > 0) {
+        if (ox < oy) n.x += (dx >= 0 ? ox : -ox);
+        else n.y += (dy >= 0 ? oy : -oy);
+        if (state.settings.snapToGrid) {
+          n.x = snap(n.x);
+          n.y = snap(n.y);
+        }
+      }
+    }
+  }
+
+  function layoutCircle() {
+    if (state.nodes.length < 2) { alert('Нужно минимум два узла.'); return; }
+    var cx = 0, cy = 0;
+    state.nodes.forEach(function (n) { cx += n.x; cy += n.y; });
+    cx /= state.nodes.length;
+    cy /= state.nodes.length;
+    var r = Math.max(220, state.nodes.length * 42);
+    state.nodes.forEach(function (n, i) {
+      var ang = (i / state.nodes.length) * Math.PI * 2 - Math.PI / 2;
+      n.x = snap(cx + Math.cos(ang) * r);
+      n.y = snap(cy + Math.sin(ang) * r);
+    });
+    render(); save(); centerView();
+  }
+
+  function layoutTree() {
+    if (!state.nodes.length) return;
+    var adj = {};
+    state.nodes.forEach(function (n) { adj[n.id] = []; });
+    state.links.forEach(function (l) {
+      if (adj[l.from] && adj[l.to]) {
+        adj[l.from].push(l.to);
+        adj[l.to].push(l.from);
+      }
+    });
+    var root = state.nodes[0], maxDeg = -1;
+    state.nodes.forEach(function (n) {
+      if (adj[n.id].length > maxDeg) { maxDeg = adj[n.id].length; root = n; }
+    });
+    var visited = {};
+    var levels = {};
+    var queue = [{ id: root.id, level: 0 }];
+    visited[root.id] = 0;
+    while (queue.length) {
+      var cur = queue.shift();
+      if (!levels[cur.level]) levels[cur.level] = [];
+      levels[cur.level].push(cur.id);
+      var nbrs = adj[cur.id];
+      for (var i = 0; i < nbrs.length; i++) {
+        var nb = nbrs[i];
+        if (visited[nb] === undefined) {
+          visited[nb] = cur.level + 1;
+          queue.push({ id: nb, level: cur.level + 1 });
+        }
+      }
+    }
+    var maxLevel = 0;
+    Object.keys(levels).forEach(function (k) { if (+k > maxLevel) maxLevel = +k; });
+    var isolated = state.nodes.filter(function (n) { return visited[n.id] === undefined; });
+    if (isolated.length) {
+      maxLevel += 1;
+      levels[maxLevel] = isolated.map(function (n) { return n.id; });
+    }
+    var levelH = 130;
+    var gapX = 210;
+    Object.keys(levels).forEach(function (lvl) {
+      var ids = levels[lvl];
+      var y = (+lvl) * levelH;
+      var totalW = (ids.length - 1) * gapX;
+      ids.forEach(function (id, i) {
+        var n = getNode(id);
+        if (!n) return;
+        n.x = snap(i * gapX - totalW / 2);
+        n.y = snap(y);
+      });
+    });
+    var offsetY = -((maxLevel * levelH) / 2);
+    state.nodes.forEach(function (n) { n.y = snap(n.y + offsetY); });
+    render(); save(); centerView();
+  }
+
+  function layoutGrid() {
+    if (!state.nodes.length) return;
+    var n = state.nodes.length;
+    var cols = Math.ceil(Math.sqrt(n));
+    var rows = Math.ceil(n / cols);
+    var gapX = 220, gapY = 120;
+    state.nodes.forEach(function (node, i) {
+      var r = Math.floor(i / cols);
+      var c = i % cols;
+      node.x = snap(c * gapX - ((cols - 1) * gapX) / 2);
+      node.y = snap(r * gapY - ((rows - 1) * gapY) / 2);
+    });
+    render(); save(); centerView();
+  }
+
+  function focusNode(id) {
+    var n = getNode(id);
+    if (!n) return;
+    var r = svg.getBoundingClientRect();
+    view.tx = r.width  / 2 - n.x * view.k;
+    view.ty = r.height / 2 - n.y * view.k;
+    render();
+  }
+  function runSearch() {
+    var q = searchInput.value.trim().toLowerCase();
+    searchMatches = [];
+    if (q) {
+      state.nodes.forEach(function (n) {
+        var p = n.props || {};
+        var hay = ((n.label || '') + ' ' + (p.note || '') + ' ' + (p.source || '')).toLowerCase();
+        if (hay.indexOf(q) >= 0) searchMatches.push(n.id);
+      });
+    }
+    searchPos = 0;
+    if (searchMatches.length) {
+      searchCount.textContent = '1/' + searchMatches.length;
+    } else {
+      searchCount.textContent = q ? '0' : '';
+    }
+    render();
+    if (searchMatches.length) focusNode(searchMatches[0]);
+  }
+  function searchNext() {
+    if (!searchMatches.length) return;
+    searchPos = (searchPos + 1) % searchMatches.length;
+    searchCount.textContent = (searchPos + 1) + '/' + searchMatches.length;
+    focusNode(searchMatches[searchPos]);
+  }
+  searchInput.addEventListener('input', runSearch);
+  searchInput.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); searchNext(); }
+    if (ev.key === 'Escape') { searchInput.value = ''; searchInput.blur(); runSearch(); }
+  });
+
+  function render() {
+    viewport.setAttribute('transform', 'translate(' + view.tx + ',' + view.ty + ') scale(' + view.k + ')');
+    svg.style.backgroundSize = (GRID * view.k) + 'px ' + (GRID * view.k) + 'px';
+    svg.style.backgroundPosition = view.tx + 'px ' + view.ty + 'px';
+
+    gLinks.textContent = '';
+    gNodes.textContent = '';
+
+    state.links.forEach(function (link) {
+      var a = getNode(link.from), b = getNode(link.to);
+      if (!a || !b) return;
+
+      var p1 = boxEdge(a, b, nodeWidth(a), NODE_H);
+      var p2 = boxEdge(b, a, nodeWidth(b), NODE_H);
+      var d = buildLinkPath(p1, p2);
+
+      el('path', {
+        d: d,
+        class: 'link-line',
+        'marker-end': 'url(#arrow)'
+      }, gLinks);
+
+      var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+      var label = link.label || 'связан с';
+      var w = label.length * 6.6 + 16;
+
+      var lg = el('g', { style: 'cursor:pointer' }, gLinks);
+      el('rect', {
+        x: mx - w / 2, y: my - 10, width: w, height: 20, rx: 7,
+        class: 'link-label-bg'
+      }, lg);
+      var t = el('text', {
+        x: mx, y: my + 4, 'text-anchor': 'middle',
+        'font-size': 11, class: 'link-label-text'
+      }, lg);
+      t.textContent = label;
+      var ti = el('title', {}, lg);
+      ti.textContent = 'ЛКМ — изменить связь, ПКМ — удалить';
+
+      lg.addEventListener('mousedown', function (ev) { ev.stopPropagation(); });
+      lg.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        askRelation(link.label || '').then(function (v) {
+          if (v !== null && v !== '') { link.label = v; render(); save(); }
+        });
+      });
+      lg.addEventListener('contextmenu', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        if (confirm('Удалить связь \u00ab' + label + '\u00bb?')) {
+          state.links = state.links.filter(function (x) { return x.id !== link.id; });
+          render(); renderProps(); save();
+        }
+      });
+    });
+
+    state.nodes.forEach(function (n, idx) {
+      var ty = getType(n.type);
+      var w = nodeWidth(n);
+      var sel = (n.id === selectedId);
+      var hit = searchMatches.indexOf(n.id) >= 0;
+
+      var g = el('g', { transform: 'translate(' + n.x + ',' + n.y + ')', style: 'cursor:grab' }, gNodes);
+
+      var rect = el('rect', {
+        x: -w / 2, y: -NODE_H / 2, width: w, height: NODE_H, rx: 11,
+        class: 'node-bg'
+      }, g);
+      if (sel) {
+        rect.style.stroke = ty.color;
+        rect.style.strokeWidth = '2.5';
+      }
+      if (hit) {
+        rect.style.stroke = '#4d6bfe';
+        rect.style.strokeWidth = '2.5';
+        rect.style.strokeDasharray = '6 3';
+      }
+
+      if (n.trust && TRUST[n.trust]) {
+        el('rect', {
+          x: -w / 2 + 3, y: -NODE_H / 2 + 5,
+          width: 4, height: NODE_H - 10, rx: 2,
+          fill: TRUST[n.trust].color
+        }, g);
+      }
+
+      el('circle', { cx: -w / 2 + 22, cy: 0, r: 13, fill: ty.color }, g);
+      var st = el('text', {
+        x: -w / 2 + 22, y: 4.5, 'text-anchor': 'middle',
+        'font-size': 11, 'font-weight': 600, fill: '#ffffff'
+      }, g);
+      st.textContent = ty.short;
+
+      var lt = el('text', {
+        x: -w / 2 + 44, y: 5, 'font-size': 13, class: 'node-text'
+      }, g);
+      lt.textContent = shortText(n.label, 26);
+
+      el('circle', { cx: -w / 2 - 16, cy: 0, r: 11, class: 'num-bg' }, g);
+      var nt = el('text', {
+        x: -w / 2 - 16, y: 4, 'text-anchor': 'middle',
+        'font-size': 11, class: 'num-text'
+      }, g);
+      nt.textContent = String(idx + 1);
+
+      var h = el('circle', {
+        cx: w / 2 + 9, cy: 0, r: 6, fill: '#4d6bfe', style: 'cursor:crosshair'
+      }, g);
+      var ht = el('title', {}, h);
+      ht.textContent = 'Потяните к другому узлу, чтобы создать связь';
+
+      h.addEventListener('mousedown', function (ev) {
+        ev.stopPropagation(); ev.preventDefault();
+        startLink(n, ev);
+      });
+
+      g.addEventListener('mousedown', function (ev) {
+        if (ev.button !== 0) return;
+        ev.stopPropagation(); ev.preventDefault();
+        select(n.id);
+        var p = screenToWorld(ev);
+        drag = { id: n.id, dx: p.x - n.x, dy: p.y - n.y };
+        svg.style.cursor = 'grabbing';
+      });
+
+      g.addEventListener('contextmenu', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        if (confirm('Удалить узел \u00ab' + n.label + '\u00bb?')) deleteNode(n.id);
+      });
+    });
+  }
+
+  function select(id) {
+    selectedId = id;
+    render();
+    renderProps();
+  }
+
+  function deleteNode(id) {
+    state.nodes = state.nodes.filter(function (n) { return n.id !== id; });
+    state.links = state.links.filter(function (l) { return l.from !== id && l.to !== id; });
+    if (selectedId === id) selectedId = null;
+    render(); renderProps(); save();
+  }
+
+  function makeField(labelText, parent) {
+    var l = document.createElement('label');
+    l.className = 'f';
+    l.textContent = labelText;
+    parent.appendChild(l);
+  }
+
+  function renderProps() {
+    propsEl.textContent = '';
+    var n = getNode(selectedId);
+
+    if (!n) {
+      var p = document.createElement('p');
+      p.className = 'muted';
+      p.textContent = 'Выберите узел на доске или добавьте новый из палитры.';
+      propsEl.appendChild(p);
+      return;
+    }
+
+    var idx = nodeIndex(n.id);
+
+    makeField('Значение', propsEl);
+    var i1 = document.createElement('input');
+    i1.value = n.label || '';
+    i1.addEventListener('input', function () { n.label = i1.value; render(); save(); });
+    propsEl.appendChild(i1);
+
+    makeField('Тип сущности', propsEl);
+    var s2 = document.createElement('select');
+    getAllTypes().forEach(function (t) {
+      var o = document.createElement('option');
+      o.value = t.id; o.textContent = t.name;
+      s2.appendChild(o);
+    });
+    s2.value = n.type;
+    s2.addEventListener('change', function () { n.type = s2.value; render(); save(); });
+    propsEl.appendChild(s2);
+
+    makeField('Достоверность', propsEl);
+    var s3 = document.createElement('select');
+    var o0 = document.createElement('option');
+    o0.value = ''; o0.textContent = '— не указана —';
+    s3.appendChild(o0);
+    Object.keys(TRUST).forEach(function (k) {
+      var o = document.createElement('option');
+      o.value = k; o.textContent = TRUST[k].name;
+      s3.appendChild(o);
+    });
+    s3.value = n.trust || '';
+    s3.addEventListener('change', function () { n.trust = s3.value; render(); save(); });
+    propsEl.appendChild(s3);
+
+    n.props = n.props || {};
+
+    makeField('Источник (ссылка)', propsEl);
+    var i4 = document.createElement('input');
+    i4.value = n.props.source || '';
+    i4.placeholder = 'https://\u2026';
+    i4.addEventListener('input', function () { n.props.source = i4.value; save(); });
+    propsEl.appendChild(i4);
+
+    makeField('Заметка', propsEl);
+    var t5 = document.createElement('textarea');
+    t5.rows = 3;
+    t5.value = n.props.note || '';
+    t5.addEventListener('input', function () { n.props.note = t5.value; save(); });
+    propsEl.appendChild(t5);
+
+    var numInfo = document.createElement('p');
+    numInfo.className = 'muted';
+    numInfo.style.marginTop = '8px';
+    numInfo.textContent = 'Номер узла на доске и в отчёте: ' + (idx + 1) + '.';
+    propsEl.appendChild(numInfo);
+
+    var conns = state.links.filter(function (l) { return l.from === n.id || l.to === n.id; });
+    var h = document.createElement('h2');
+    h.textContent = 'Связи узла (' + conns.length + ')';
+    h.style.marginTop = '18px';
+    propsEl.appendChild(h);
+
+    if (!conns.length) {
+      var empty = document.createElement('p');
+      empty.className = 'muted';
+      empty.textContent = 'Связей пока нет.';
+      propsEl.appendChild(empty);
+    }
+
+    conns.forEach(function (l) {
+      var other = getNode(l.from === n.id ? l.to : l.from);
+      var row = document.createElement('div');
+      row.className = 'linkRow';
+
+      var txt = document.createElement('span');
+      txt.textContent = (l.from === n.id ? '\u2192 ' : '\u2190 ') + (other ? other.label : '?') + ' \u00b7 ' + l.label;
+
+      var del = document.createElement('button');
+      del.className = 'mini';
+      del.textContent = '\u00d7';
+      del.title = 'Удалить связь';
+      del.addEventListener('click', function () {
+        state.links = state.links.filter(function (x) { return x.id !== l.id; });
+        render(); renderProps(); save();
+      });
+
+      row.appendChild(txt);
+      row.appendChild(del);
+      propsEl.appendChild(row);
+    });
+
+    var delBtn = document.createElement('button');
+    delBtn.textContent = 'Удалить узел';
+    delBtn.style.marginTop = '14px';
+    delBtn.addEventListener('click', function () {
+      if (confirm('Удалить узел \u00ab' + n.label + '\u00bb?')) deleteNode(n.id);
+    });
+    propsEl.appendChild(delBtn);
+  }
+
+  function addNode(type) {
+    var r = svg.getBoundingClientRect();
+    var cx = (r.width / 2 - view.tx) / view.k;
+    var cy = (r.height / 2 - view.ty) / view.k;
+    var defName = getType(type).name;
+    var n = {
+      id: newId(),
+      type: type,
+      label: defName + ' ' + (state.nodes.length + 1),
+      trust: '',
+      props: { note: '', source: '' },
+      x: snap(cx + (Math.random() * 90 - 45)),
+      y: snap(cy + (Math.random() * 90 - 45))
+    };
+    state.nodes.push(n);
+    select(n.id);
+    save();
+  }
+
+  function buildPalette() {
+    paletteEl.textContent = '';
+    Object.keys(TYPES).forEach(function (k) {
+      var b = document.createElement('button');
+      b.className = 'pal-btn';
+      var d = document.createElement('span');
+      d.className = 'dot';
+      d.style.background = TYPES[k].color;
+      var s = document.createElement('span');
+      s.textContent = TYPES[k].name;
+      b.appendChild(d); b.appendChild(s);
+      b.addEventListener('click', function () { addNode(k); });
+      paletteEl.appendChild(b);
+    });
+  }
+
+  function renderCustomPalette() {
+    customPal.textContent = '';
+    if (!state.customTypes.length) {
+      var m = document.createElement('p');
+      m.className = 'muted';
+      m.style.marginBottom = '8px';
+      m.textContent = 'Своих типов пока нет.';
+      customPal.appendChild(m);
+      return;
+    }
+    state.customTypes.forEach(function (t) {
+      var row = document.createElement('div');
+      row.className = 'custom-row';
+
+      var btn = document.createElement('button');
+      btn.className = 'pal-btn';
+      var d = document.createElement('span');
+      d.className = 'dot';
+      d.style.background = t.color;
+      var s = document.createElement('span');
+      s.textContent = t.name;
+      btn.appendChild(d); btn.appendChild(s);
+      btn.addEventListener('click', function () { addNode(t.id); });
+
+      var edit = document.createElement('button');
+      edit.className = 'edit-type';
+      edit.textContent = '\u270E';
+      edit.title = 'Редактировать тип';
+      edit.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        openTypeModal(t.id);
+      });
+
+      var del = document.createElement('button');
+      del.className = 'del-type';
+      del.textContent = '\u00d7';
+      del.title = 'Удалить тип';
+      del.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        deleteCustomType(t.id);
+      });
+
+      row.appendChild(btn);
+      row.appendChild(edit);
+      row.appendChild(del);
+      customPal.appendChild(row);
+    });
+  }
+
+  function deleteCustomType(id) {
+    var t = null;
+    for (var i = 0; i < state.customTypes.length; i++) {
+      if (state.customTypes[i].id === id) { t = state.customTypes[i]; break; }
+    }
+    if (!t) return;
+    var used = state.nodes.filter(function (n) { return n.type === id; }).length;
+    var msg = 'Удалить тип \u00ab' + t.name + '\u00bb?';
+    if (used) msg += '\nУзлов с этим типом: ' + used + '. Они станут типом \u00abПерсона\u00bb.';
+    if (!confirm(msg)) return;
+
+    state.customTypes = state.customTypes.filter(function (x) { return x.id !== id; });
+    state.nodes.forEach(function (n) { if (n.type === id) n.type = 'person'; });
+
+    renderCustomPalette();
+    render();
+    renderProps();
+    save();
+  }
+
+  function openTypeModal(editId) {
+    editingTypeId = editId || null;
+
+    var titleEl = document.getElementById('typeModalTitle');
+    var descEl  = document.getElementById('typeModalDesc');
+    var okBtn   = document.getElementById('ntOk');
+    var nameIn  = document.getElementById('ntName');
+    var shortIn = document.getElementById('ntShort');
+    var colIn   = document.getElementById('ntColor');
+
+    if (editingTypeId) {
+      var t = null;
+      for (var i = 0; i < state.customTypes.length; i++) {
+        if (state.customTypes[i].id === editingTypeId) { t = state.customTypes[i]; break; }
+      }
+      if (!t) { editingTypeId = null; return; }
+      titleEl.textContent = 'Редактировать тип';
+      descEl.textContent = 'Изменения сразу отразятся на всех узлах этого типа.';
+      okBtn.textContent = 'Сохранить';
+      nameIn.value = t.name;
+      shortIn.value = t.short;
+      colIn.value = t.color;
+    } else {
+      titleEl.textContent = 'Новый тип сущности';
+      descEl.textContent = 'Тип появится в разделе «Мои типы» и будет доступен так же, как встроенные.';
+      okBtn.textContent = 'Создать';
+      nameIn.value = '';
+      shortIn.value = '';
+      colIn.value = '#4d6bfe';
+    }
+
+    typeModal.classList.remove('hidden');
+    setTimeout(function () { nameIn.focus(); }, 10);
+  }
+
+  function closeTypeModal() {
+    editingTypeId = null;
+    typeModal.classList.add('hidden');
+  }
+
+  function saveTypeModal() {
+    var name = document.getElementById('ntName').value.trim();
+    var short = document.getElementById('ntShort').value.trim();
+    var color = document.getElementById('ntColor').value || '#4d6bfe';
+    if (!name) { alert('Введите название типа.'); return; }
+    if (!short) short = name.charAt(0).toUpperCase();
+
+    if (editingTypeId) {
+      for (var i = 0; i < state.customTypes.length; i++) {
+        if (state.customTypes[i].id === editingTypeId) {
+          state.customTypes[i].name = name;
+          state.customTypes[i].short = short;
+          state.customTypes[i].color = color;
+          break;
+        }
+      }
+    } else {
+      state.customTypes.push({ id: newTypeId(), name: name, short: short, color: color });
+    }
+
+    closeTypeModal();
+    renderCustomPalette();
+    render();
+    renderProps();
+    save();
+  }
+
+  document.getElementById('btnAddType').addEventListener('click', function () { openTypeModal(null); });
+  document.getElementById('ntCancel').addEventListener('click', closeTypeModal);
+  document.getElementById('ntOk').addEventListener('click', saveTypeModal);
+  document.getElementById('ntName').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); saveTypeModal(); }
+  });
+  typeModal.addEventListener('mousedown', function (e) { if (e.target === typeModal) closeTypeModal(); });
+
+  function startLink(n, ev) {
+    var p = screenToWorld(ev);
+    linking = { fromId: n.id };
+    tempLine.style.display = '';
+    tempLine.setAttribute('x1', n.x);
+    tempLine.setAttribute('y1', n.y);
+    tempLine.setAttribute('x2', p.x);
+    tempLine.setAttribute('y2', p.y);
+    svg.style.cursor = 'crosshair';
+  }
+
+  var relResolve = null;
+
+  function askRelation(initial) {
+    return new Promise(function (res) {
+      relResolve = res;
+      var custom = initial && RELATIONS.indexOf(initial) === -1;
+      relCustom.value = custom ? initial : '';
+      relSelect.value = (!custom && initial) ? initial : RELATIONS[0];
+      modal.classList.remove('hidden');
+      relCustom.focus();
+    });
+  }
+
+  function closeRel(val) {
+    modal.classList.add('hidden');
+    if (relResolve) {
+      var r = relResolve;
+      relResolve = null;
+      r(val);
+    }
+  }
+
+  function createLink(fromId, toId) {
+    askRelation('').then(function (label) {
+      if (label === null) return;
+      state.links.push({
+        id: newLinkId(),
+        from: fromId,
+        to: toId,
+        label: label || 'связан с'
+      });
+      render(); renderProps(); save();
+    });
+  }
+
+  svg.addEventListener('mousedown', function (ev) {
+    if (ev.button !== 0) return;
+    pan = { sx: ev.clientX, sy: ev.clientY, tx: view.tx, ty: view.ty, moved: false };
+    svg.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('mousemove', function (ev) {
+    if (drag) {
+      var n = getNode(drag.id);
+      if (!n) { drag = null; return; }
+      var p = screenToWorld(ev);
+      n.x = snap(p.x - drag.dx);
+      n.y = snap(p.y - drag.dy);
+      if (state.settings.repulsion) repelFrom(n);
+      render();
+    } else if (pan) {
+      var dx = ev.clientX - pan.sx, dy = ev.clientY - pan.sy;
+      if (Math.abs(dx) + Math.abs(dy) > 3) pan.moved = true;
+      view.tx = pan.tx + dx;
+      view.ty = pan.ty + dy;
+      render();
+    } else if (linking) {
+      var q = screenToWorld(ev);
+      tempLine.setAttribute('x2', q.x);
+      tempLine.setAttribute('y2', q.y);
+    }
+  });
+
+  window.addEventListener('mouseup', function (ev) {
+    if (drag) {
+      drag = null;
+      svg.style.cursor = '';
+      save();
+    } else if (pan) {
+      var wasPan = pan.moved;
+      pan = null;
+      svg.style.cursor = '';
+      if (!wasPan) select(null);
+    } else if (linking) {
+      var p = screenToWorld(ev);
+      var target = nodeAt(p.x, p.y);
+      var fromId = linking.fromId;
+      linking = null;
+      tempLine.style.display = 'none';
+      svg.style.cursor = '';
+      if (target && target.id !== fromId) createLink(fromId, target.id);
+    }
+  });
+
+  svg.addEventListener('wheel', function (ev) {
+    ev.preventDefault();
+    var r = svg.getBoundingClientRect();
+    var sx = ev.clientX - r.left;
+    var sy = ev.clientY - r.top;
+    var wx = (sx - view.tx) / view.k;
+    var wy = (sy - view.ty) / view.k;
+    var factor = ev.deltaY < 0 ? 1.12 : 1 / 1.12;
+    view.k = Math.max(0.25, Math.min(2.5, view.k * factor));
+    view.tx = sx - wx * view.k;
+    view.ty = sy - wy * view.k;
+    render();
+  }, { passive: false });
+
+  window.addEventListener('keydown', function (ev) {
+    var tag = document.activeElement ? document.activeElement.tagName : '';
+    if (/^(INPUT|TEXTAREA|SELECT)$/.test(tag)) return;
+    if ((ev.key === 'Delete' || ev.key === 'Backspace') && selectedId) {
+      ev.preventDefault();
+      var n = getNode(selectedId);
+      if (n && confirm('Удалить узел \u00ab' + n.label + '\u00bb?')) deleteNode(selectedId);
+    }
+  });
+
+  function centerView() {
+    if (!state.nodes.length) {
+      view = { tx: 0, ty: 0, k: 1 };
+      render();
+      return;
+    }
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    state.nodes.forEach(function (n) {
+      var w = nodeWidth(n);
+      minX = Math.min(minX, n.x - w / 2 - 30);
+      maxX = Math.max(maxX, n.x + w / 2);
+      minY = Math.min(minY, n.y - NODE_H / 2);
+      maxY = Math.max(maxY, n.y + NODE_H / 2);
+    });
+    var r = svg.getBoundingClientRect();
+    var pad = 90;
+    var spanX = Math.max(maxX - minX, 1);
+    var spanY = Math.max(maxY - minY, 1);
+    var k = Math.min((r.width - pad * 2) / spanX, (r.height - pad * 2) / spanY, 1.4);
+    view.k = Math.max(0.25, Math.min(2.5, k));
+    view.tx = r.width  / 2 - ((minX + maxX) / 2) * view.k;
+    view.ty = r.height / 2 - ((minY + maxY) / 2) * view.k;
+    render();
+  }
+
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return;
+      var d = JSON.parse(raw);
+      if (d && d.nodes && d.links) {
+        state = d;
+        state.meta = state.meta || { title: '', author: '', notes: '' };
+        state.customTypes = state.customTypes || [];
+        state.settings = state.settings || { snapToGrid: false, orthogonal: false, repulsion: true };
+        if (typeof state.settings.snapToGrid !== 'boolean') state.settings.snapToGrid = false;
+        if (typeof state.settings.orthogonal !== 'boolean') state.settings.orthogonal = false;
+        if (typeof state.settings.repulsion !== 'boolean')  state.settings.repulsion = true;
+        state.nodes.forEach(function (n) {
+          if (typeof n.trust !== 'string') n.trust = '';
+          if (!n.props) n.props = { note: '', source: '' };
+        });
+      }
+    } catch (e) { }
+  }
+
+  function syncMetaInputs() {
+    caseTitle.value = state.meta.title || '';
+    metaAuthor.value = state.meta.author || '';
+    metaNotes.value = state.meta.notes || '';
+  }
+  function syncOptionInputs() {
+    optSnap.checked  = !!state.settings.snapToGrid;
+    optOrtho.checked = !!state.settings.orthogonal;
+    optRepel.checked = !!state.settings.repulsion;
+  }
+
+  function download(blob, name) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1500);
+  }
+
+  function exportJSON() {
+    var data = JSON.stringify(state, null, 2);
+    download(new Blob([data], { type: 'application/json;charset=utf-8' }), 'deska_int.json');
+  }
+
+  function importJSON(file) {
+    var fr = new FileReader();
+    fr.onload = function () {
+      try {
+        var d = JSON.parse(fr.result);
+        if (!d || !d.nodes) throw new Error('bad');
+        state = d;
+        state.meta = state.meta || { title: '', author: '', notes: '' };
+        state.links = state.links || [];
+        state.customTypes = state.customTypes || [];
+        state.settings = state.settings || { snapToGrid: false, orthogonal: false, repulsion: true };
+        if (typeof state.settings.snapToGrid !== 'boolean') state.settings.snapToGrid = false;
+        if (typeof state.settings.orthogonal !== 'boolean') state.settings.orthogonal = false;
+        if (typeof state.settings.repulsion !== 'boolean')  state.settings.repulsion = true;
+        state.nodes.forEach(function (n) {
+          if (typeof n.trust !== 'string') n.trust = '';
+          if (!n.props) n.props = { note: '', source: '' };
+        });
+        selectedId = null;
+        syncMetaInputs();
+        syncOptionInputs();
+        renderCustomPalette();
+        render(); renderProps(); save();
+        centerView();
+      } catch (e) {
+        alert('Не удалось прочитать файл: ожидается JSON, сохранённый этой доской.');
+      }
+    };
+    fr.readAsText(file);
+  }
+
+  function escXml(s) {
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  function buildExportSvg() {
+    if (!state.nodes.length) return null;
+
+    var pad = 60;
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    state.nodes.forEach(function (n) {
+      var w = nodeWidth(n);
+      minX = Math.min(minX, n.x - w / 2 - 30);
+      maxX = Math.max(maxX, n.x + w / 2 + 18);
+      minY = Math.min(minY, n.y - NODE_H / 2);
+      maxY = Math.max(maxY, n.y + NODE_H / 2);
+    });
+    minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+    var W = Math.max(200, Math.ceil(maxX - minX));
+    var H = Math.max(150, Math.ceil(maxY - minY));
+    var ox = -minX, oy = -minY;
+
+    var cs = getComputedStyle(document.documentElement);
+    function v(name, fb) {
+      var x = cs.getPropertyValue(name).trim();
+      return x || fb;
+    }
+    var cBg   = v('--canvas-bg', '#fbfbfd');
+    var cNodeBg = v('--node-bg', '#ffffff');
+    var cNodeBd = v('--node-border', '#e0e3ea');
+    var cNodeTx = v('--node-text', '#0d0d0d');
+    var cLink = v('--link', '#c3c9d4');
+    var cLblBg = v('--link-label-bg', '#ffffff');
+    var cLblBd = v('--link-label-border', '#e5e5e5');
+    var cLblTx = v('--link-label-text', '#6b7280');
+    var cNumBg = v('--accent-soft', '#eef1ff');
+    var cNumBd = v('--border', '#e5e5e5');
+    var cNumTx = v('--accent', '#4d6bfe');
+
+    var out = [];
+    out.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H +
+             '" viewBox="0 0 ' + W + ' ' + H + '" font-family="sans-serif">');
+    out.push('<defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">' +
+             '<path d="M 0 0 L 10 5 L 0 10 z" fill="' + cLink + '"/></marker></defs>');
+    out.push('<rect width="' + W + '" height="' + H + '" fill="' + cBg + '"/>');
+    out.push('<g transform="translate(' + ox + ',' + oy + ')">');
+
+    state.links.forEach(function (link) {
+      var a = getNode(link.from), b = getNode(link.to);
+      if (!a || !b) return;
+      var p1 = boxEdge(a, b, nodeWidth(a), NODE_H);
+      var p2 = boxEdge(b, a, nodeWidth(b), NODE_H);
+      out.push('<path d="' + buildLinkPath(p1, p2) +
+               '" fill="none" stroke="' + cLink + '" stroke-width="2" stroke-linejoin="round" marker-end="url(#ar)"/>');
+      var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+      var label = link.label || 'связан с';
+      var lw = label.length * 6.6 + 16;
+      out.push('<rect x="' + (mx - lw / 2) + '" y="' + (my - 10) + '" width="' + lw +
+               '" height="20" rx="7" fill="' + cLblBg + '" stroke="' + cLblBd + '"/>');
+      out.push('<text x="' + mx + '" y="' + (my + 4) + '" text-anchor="middle" font-size="11" fill="' +
+               cLblTx + '">' + escXml(label) + '</text>');
+    });
+
+    state.nodes.forEach(function (n, idx) {
+      var ty = getType(n.type);
+      var w = nodeWidth(n);
+      out.push('<g transform="translate(' + n.x + ',' + n.y + ')">');
+      out.push('<rect x="' + (-w / 2) + '" y="' + (-NODE_H / 2) + '" width="' + w + '" height="' +
+               NODE_H + '" rx="11" fill="' + cNodeBg + '" stroke="' + cNodeBd + '" stroke-width="1.5"/>');
+      if (n.trust && TRUST[n.trust]) {
+        out.push('<rect x="' + (-w / 2 + 3) + '" y="' + (-NODE_H / 2 + 5) + '" width="4" height="' +
+                 (NODE_H - 10) + '" rx="2" fill="' + TRUST[n.trust].color + '"/>');
+      }
+      out.push('<circle cx="' + (-w / 2 + 22) + '" cy="0" r="13" fill="' + ty.color + '"/>');
+      out.push('<text x="' + (-w / 2 + 22) + '" y="4.5" text-anchor="middle" font-size="11" font-weight="600" fill="#ffffff">' +
+               escXml(ty.short) + '</text>');
+      out.push('<text x="' + (-w / 2 + 44) + '" y="5" font-size="13" fill="' + cNodeTx + '">' +
+               escXml(shortText(n.label, 26)) + '</text>');
+      out.push('<circle cx="' + (-w / 2 - 16) + '" cy="0" r="11" fill="' + cNumBg + '" stroke="' + cNumBd + '"/>');
+      out.push('<text x="' + (-w / 2 - 16) + '" y="4" text-anchor="middle" font-size="11" font-weight="600" fill="' +
+               cNumTx + '">' + (idx + 1) + '</text>');
+      out.push('</g>');
+    });
+
+    out.push('</g></svg>');
+    return { svg: out.join(''), W: W, H: H, bg: cBg };
+  }
+
+  function exportImage(format) {
+    var res = buildExportSvg();
+    if (!res) { alert('Доска пуста — нечего экспортировать.'); return; }
+
+    var svgBlob = new Blob([res.svg], { type: 'image/svg+xml;charset=utf-8' });
+    var url = URL.createObjectURL(svgBlob);
+    var img = new Image();
+
+    img.onload = function () {
+      var maxDim = 4000, scale = 2;
+      if (res.W * scale > maxDim || res.H * scale > maxDim) {
+        scale = Math.min(maxDim / res.W, maxDim / res.H);
+      }
+      if (scale < 1) scale = 1;
+
+      var canvas = document.createElement('canvas');
+      canvas.width  = Math.round(res.W * scale);
+      canvas.height = Math.round(res.H * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = res.bg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      URL.revokeObjectURL(url);
+
+      var mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
+      var ext  = format === 'jpg' ? 'jpg' : 'png';
+      canvas.toBlob(function (b) {
+        if (!b) { alert('Не удалось сформировать изображение.'); return; }
+        download(b, 'DESKA_INT_map.' + ext);
+      }, mime, 0.92);
+    };
+    img.onerror = function () {
+      URL.revokeObjectURL(url);
+      alert('Не удалось построить изображение.');
+    };
+    img.src = url;
+  }
+
+  function mdEsc(s) {
+    return String(s === null || s === undefined ? '' : s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  }
+
+  function exportReport() {
+    var title = state.meta.title || 'OSINT-исследование';
+    var md = '# ' + title + '\n\n';
+    if (state.meta.author) md += '**Исполнитель:** ' + state.meta.author + '  \n';
+    md += '**Дата выгрузки:** ' + new Date().toLocaleDateString('ru-RU') + '  \n';
+    md += '**Сущностей:** ' + state.nodes.length + ' · **Связей:** ' + state.links.length + '\n';
+
+    if (state.meta.notes) md += '\n## Цель и описание\n\n' + state.meta.notes + '\n';
+
+    md += '\n## Сущности\n\n';
+    md += '| № | Тип | Значение | Достоверность | Источник | Заметка |\n';
+    md += '|---|---|---|---|---|---|\n';
+    state.nodes.forEach(function (n, i) {
+      var p = n.props || {};
+      var trust = (n.trust && TRUST[n.trust]) ? TRUST[n.trust].name : '\u2014';
+      md += '| ' + (i + 1) + ' | ' + getType(n.type).name + ' | ' + mdEsc(n.label) +
+            ' | ' + trust +
+            ' | ' + mdEsc(p.source || '\u2014') + ' | ' + mdEsc(p.note || '\u2014') + ' |\n';
+    });
+
+    md += '\n## Связи\n\n';
+    if (!state.links.length) md += '_Связи не зафиксированы._\n';
+    state.links.forEach(function (l) {
+      var a = getNode(l.from), b = getNode(l.to);
+      if (!a || !b) return;
+      var na = nodeIndex(a.id) + 1;
+      var nb = nodeIndex(b.id) + 1;
+      md += '- (' + na + ') **' + mdEsc(a.label) + '** \u2192 *' + mdEsc(l.label) +
+            '* \u2192 (' + nb + ') **' + mdEsc(b.label) + '**\n';
+    });
+
+    md += '\n---\n\n';
+    md += 'Отчёт сформирован в доске DESKA_INT. Все данные приведены по открытым источникам ' +
+          'и требуют ручной верификации перед использованием.\n';
+
+    download(new Blob([md], { type: 'text/markdown;charset=utf-8' }), 'DESKA_INT_report.md');
+  }
+
+  function loadDemo() {
+    var defs = [
+      ['person',   'Иванов Иван (пример)',  'confirmed'],
+      ['email',    'i.ivanov@example.com',  'confirmed'],
+      ['phone',    '+7 900 000-00-00',      'unconfirmed'],
+      ['username', 'ivanov_demo',           'confirmed'],
+      ['domain',   'example.com',           'confirmed'],
+      ['ip',       '203.0.113.10',          'confirmed'],
+      ['org',      'ООО \u00abПример\u00bb', 'unconfirmed'],
+      ['location', 'Санкт-Петербург',       'rumor'],
+      ['wallet',   'bc1q\u2026example',     'unconfirmed'],
+      ['file',     'passport_scan.pdf',     'rumor']
+    ];
+
+    var nodes = [];
+    var R = 300;
+    defs.forEach(function (d, i) {
+      var ang = (i / defs.length) * Math.PI * 2 - Math.PI / 2;
+      var x = i === 0 ? 0 : Math.cos(ang) * R;
+      var y = i === 0 ? 0 : Math.sin(ang) * R;
+      nodes.push({
+        id: newId(),
+        type: d[0],
+        label: d[1],
+        trust: d[2],
+        props: { note: '', source: '' },
+        x: Math.round(x / GRID) * GRID,
+        y: Math.round(y / GRID) * GRID
+      });
+    });
+
+    function L(a, b, t) {
+      return { id: newLinkId(), from: nodes[a].id, to: nodes[b].id, label: t };
+    }
+
+    state.meta = {
+      title: 'Демонстрационное дело (вымышленные данные)',
+      author: '',
+      notes: 'Учебный пример структуры карты связей. Все сущности вымышлены, ' +
+             'IP взят из документационного диапазона TEST-NET-3, домен — из example.com.'
+    };
+    state.nodes = nodes;
+    state.links = [
+      L(0, 1, 'использует'),
+      L(0, 2, 'использует'),
+      L(0, 3, 'использует'),
+      L(3, 4, 'зарегистрирован на'),
+      L(4, 5, 'размещён на'),
+      L(0, 6, 'работает в'),
+      L(0, 7, 'проживает в'),
+      L(1, 8, 'оплатил'),
+      L(0, 9, 'владеет'),
+      L(6, 7, 'находится в')
+    ];
+
+    selectedId = null;
+    searchInput.value = '';
+    searchCount.textContent = '';
+    searchMatches = [];
+    syncMetaInputs();
+    render(); renderProps(); save();
+    centerView();
+  }
+
+  function clearAll() {
+    if (!confirm('Очистить доску? Узлы и связи будут удалены, свои типы и настройки сохранятся.\n' +
+                 'JSON лучше сохранить заранее.')) return;
+    state.meta = { title: '', author: '', notes: '' };
+    state.nodes = [];
+    state.links = [];
+    selectedId = null;
+    view = { tx: 0, ty: 0, k: 1 };
+    searchInput.value = '';
+    searchCount.textContent = '';
+    searchMatches = [];
+    syncMetaInputs();
+    render(); renderProps(); save();
+  }
+
+  RELATIONS.forEach(function (r) {
+    var o = document.createElement('option');
+    o.value = r; o.textContent = r;
+    relSelect.appendChild(o);
+  });
+
+  document.getElementById('relOk').addEventListener('click', function () {
+    closeRel(relCustom.value.trim() || relSelect.value);
+  });
+  document.getElementById('relCancel').addEventListener('click', function () { closeRel(null); });
+  relCustom.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); closeRel(relCustom.value.trim() || relSelect.value); }
+  });
+  modal.addEventListener('mousedown', function (e) { if (e.target === modal) closeRel(null); });
+
+  caseTitle.addEventListener('input', function () { state.meta.title = caseTitle.value; save(); });
+  metaAuthor.addEventListener('input', function () { state.meta.author = metaAuthor.value; save(); });
+  metaNotes.addEventListener('input', function () { state.meta.notes = metaNotes.value; save(); });
+
+  optSnap.addEventListener('change', function () {
+    state.settings.snapToGrid = optSnap.checked;
+    save();
+  });
+  optOrtho.addEventListener('change', function () {
+    state.settings.orthogonal = optOrtho.checked;
+    render();
+    save();
+  });
+  optRepel.addEventListener('change', function () {
+    state.settings.repulsion = optRepel.checked;
+    save();
+  });
+
+  document.getElementById('btnLayoutCircle').addEventListener('click', layoutCircle);
+  document.getElementById('btnLayoutTree').addEventListener('click', layoutTree);
+  document.getElementById('btnLayoutGrid').addEventListener('click', layoutGrid);
+
+  document.getElementById('btnDemo').addEventListener('click', loadDemo);
+  document.getElementById('btnCenter').addEventListener('click', centerView);
+  document.getElementById('btnPng').addEventListener('click', function () { exportImage('png'); });
+  document.getElementById('btnJpg').addEventListener('click', function () { exportImage('jpg'); });
+  document.getElementById('btnSave').addEventListener('click', exportJSON);
+  document.getElementById('btnReport').addEventListener('click', exportReport);
+  document.getElementById('btnClear').addEventListener('click', clearAll);
+
+  document.getElementById('btnOpen').addEventListener('click', function () { fileInput.click(); });
+  fileInput.addEventListener('change', function () {
+    if (fileInput.files && fileInput.files[0]) {
+      importJSON(fileInput.files[0]);
+      fileInput.value = '';
+    }
+  });
+
+  initTheme();
+  load();
+  buildPalette();
+  renderCustomPalette();
+  syncMetaInputs();
+  syncOptionInputs();
+  render();
+  renderProps();
+  if (state.nodes.length) centerView();
+
+  window.addEventListener('resize', function () { render(); });
+
+})();
+</script>
+</body>
+</html>
+
