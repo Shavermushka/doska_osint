@@ -83,7 +83,7 @@
 Установка не требуется. Интернет не нужен.
 
 ```bash
-git clone https://github.com/<ваш-логин>/deska-int.git
+git clone https://github.com/Shavermushka/doska_osint.git
 cd deska-int
 # Откройте osint-board/index.html в браузере
 ```
